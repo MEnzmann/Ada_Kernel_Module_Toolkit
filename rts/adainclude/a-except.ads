@@ -1,12 +1,17 @@
 ------------------------------------------------------------------------------
 --                                                                          --
---                         GNAT COMPILER COMPONENTS                         --
+--                         GNAT RUN-TIME COMPONENTS                         --
 --                                                                          --
---               S Y S T E M . S E C O N D A R Y _ S T A C K                --
+--                       A D A . E X C E P T I O N S                        --
+--       (Version for No Exception Handlers/No_Exception_Propagation)       --
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
 --          Copyright (C) 1992-2014, Free Software Foundation, Inc.         --
+--                                                                          --
+-- This specification is derived from the Ada Reference Manual for use with --
+-- GNAT. The copyright notice above, and the license provisions that follow --
+-- apply solely to the  contents of the part following the private keyword. --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -29,50 +34,38 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Version for use in HI-E mode
+--  Version is for use when there are no handlers in the partition (i.e. either
+--  of Restriction No_Exception_Handlers or No_Exception_Propagation is set).
 
-with System.Storage_Elements;
+with System;
 
-package System.Secondary_Stack is
+package Ada.Exceptions is
+   pragma Preelaborate;
+   --  In accordance with Ada 2005 AI-362
 
-   package SSE renames System.Storage_Elements;
+   type Exception_Id is private;
+   pragma Preelaborable_Initialization (Exception_Id);
 
-   Default_Secondary_Stack_Size : constant := 10 * 1024;
-   --  Default size of a secondary stack
+   Null_Id : constant Exception_Id;
 
-   procedure SS_Init
-     (Stk  : System.Address;
-      Size : Natural := Default_Secondary_Stack_Size);
-   --  Initialize the secondary stack with a main stack of the given Size.
-   --
-   --  Stk is an IN parameter that is already pointing to a memory area of
-   --  size Size and aligned to Standard'Maximum_Alignment.
-   --
-   --  The secondary stack is fixed, and any attempt to allocate more than the
-   --  initial size will result in a Storage_Error being raised.
-
-   procedure SS_Allocate
-     (Address      : out System.Address;
-      Storage_Size : SSE.Storage_Count);
-   --  Allocate enough space for a 'Storage_Size' bytes object with Maximum
-   --  alignment. The address of the allocated space is returned in 'Address'
-
-   type Mark_Id is private;
-   --  Type used to mark the stack
-
-   function SS_Mark return Mark_Id;
-   --  Return the Mark corresponding to the current state of the stack
-
-   procedure SS_Release (M : Mark_Id);
-   --  Restore the state of the stack corresponding to the mark M. If an
-   --  additional chunk have been allocated, it will never be freed during a
+   procedure Raise_Exception (E : Exception_Id; Message : String := "");
+   pragma No_Return (Raise_Exception);
+   --  Unconditionally call __gnat_last_chance_handler. Message should be a
+   --  null terminated string. Note that the exception is still raised even
+   --  if E is the null exception id. This is a deliberate simplification for
+   --  this profile (the use of Raise_Exception with a null id is very rare in
+   --  any case, and this way we avoid introducing Raise_Exception_Always and
+   --  we also avoid the if test in Raise_Exception).
 
 private
 
-   SS_Pool : Integer;
-   --  Unused entity that is just present to ease the sharing of the pool
-   --  mechanism for specific allocation/deallocation in the compiler
+   ------------------
+   -- Exception_Id --
+   ------------------
 
-   type Mark_Id is new SSE.Integer_Address;
+   type Exception_Id is access all System.Address;
+   Null_Id : constant Exception_Id := null;
 
-end System.Secondary_Stack;
+   pragma Inline_Always (Raise_Exception);
+
+end Ada.Exceptions;

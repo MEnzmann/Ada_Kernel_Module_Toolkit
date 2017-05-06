@@ -2,11 +2,11 @@
 --                                                                          --
 --                         GNAT COMPILER COMPONENTS                         --
 --                                                                          --
---               S Y S T E M . S E C O N D A R Y _ S T A C K                --
+--    S Y S T E M . S E C O N D A R Y _ S T A C K . S I N G L E _ T A S K   --
 --                                                                          --
---                                 S p e c                                  --
+--                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2014, Free Software Foundation, Inc.         --
+--          Copyright (C) 2005-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -29,50 +29,42 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Version for use in HI-E mode
+--  pragma Restrictions (No_Elaboration_Code);
+--  We want to guarantee the absence of elaboration code because the
+--  binder does not handle references to this package.
 
 with System.Storage_Elements;
 
-package System.Secondary_Stack is
+package body System.Secondary_Stack.Single_Task is
 
-   package SSE renames System.Storage_Elements;
+   ----------------
+   -- Local Data --
+   ----------------
 
-   Default_Secondary_Stack_Size : constant := 10 * 1024;
-   --  Default size of a secondary stack
+   Initialized : Boolean := False;
+   --  Boolean flag that indicates whether the memory area to be used as a
+   --  secondary stack has already been initialized.
 
-   procedure SS_Init
-     (Stk  : System.Address;
-      Size : Natural := Default_Secondary_Stack_Size);
-   --  Initialize the secondary stack with a main stack of the given Size.
-   --
-   --  Stk is an IN parameter that is already pointing to a memory area of
-   --  size Size and aligned to Standard'Maximum_Alignment.
-   --
-   --  The secondary stack is fixed, and any attempt to allocate more than the
-   --  initial size will result in a Storage_Error being raised.
+   Secondary_Stack : aliased Storage_Elements.Storage_Array
+     (1 .. Storage_Elements.Storage_Offset (Default_Secondary_Stack_Size));
+   for Secondary_Stack'Alignment use Standard'Maximum_Alignment;
+   --  The secondary stack
 
-   procedure SS_Allocate
-     (Address      : out System.Address;
-      Storage_Size : SSE.Storage_Count);
-   --  Allocate enough space for a 'Storage_Size' bytes object with Maximum
-   --  alignment. The address of the allocated space is returned in 'Address'
+   -------------------
+   -- Get_Sec_Stack --
+   -------------------
 
-   type Mark_Id is private;
-   --  Type used to mark the stack
+   function Get_Sec_Stack return Address is
+   begin
+      if not Initialized then
+         --  Initialize the secondary stack
 
-   function SS_Mark return Mark_Id;
-   --  Return the Mark corresponding to the current state of the stack
+         SS_Init (Secondary_Stack'Address, Default_Secondary_Stack_Size);
 
-   procedure SS_Release (M : Mark_Id);
-   --  Restore the state of the stack corresponding to the mark M. If an
-   --  additional chunk have been allocated, it will never be freed during a
+         Initialized := True;
+      end if;
 
-private
+      return Secondary_Stack'Address;
+   end Get_Sec_Stack;
 
-   SS_Pool : Integer;
-   --  Unused entity that is just present to ease the sharing of the pool
-   --  mechanism for specific allocation/deallocation in the compiler
-
-   type Mark_Id is new SSE.Integer_Address;
-
-end System.Secondary_Stack;
+end System.Secondary_Stack.Single_Task;

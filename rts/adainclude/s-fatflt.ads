@@ -2,11 +2,11 @@
 --                                                                          --
 --                         GNAT COMPILER COMPONENTS                         --
 --                                                                          --
---               S Y S T E M . S E C O N D A R Y _ S T A C K                --
+--                       S Y S T E M . F A T _ F L T                        --
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2014, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -29,50 +29,19 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Version for use in HI-E mode
+--  This package contains an instantiation of the floating-point attribute
+--  runtime routines for the type Float.
 
-with System.Storage_Elements;
+with System.Fat_Gen;
 
-package System.Secondary_Stack is
+package System.Fat_Flt is
+   pragma Pure;
 
-   package SSE renames System.Storage_Elements;
+   --  Note the only entity from this package that is accessed by Rtsfind
+   --  is the name of the package instantiation. Entities within this package
+   --  (i.e. the individual floating-point attribute routines) are accessed
+   --  by name using selected notation.
 
-   Default_Secondary_Stack_Size : constant := 10 * 1024;
-   --  Default size of a secondary stack
+   package Attr_Float is new System.Fat_Gen (Float);
 
-   procedure SS_Init
-     (Stk  : System.Address;
-      Size : Natural := Default_Secondary_Stack_Size);
-   --  Initialize the secondary stack with a main stack of the given Size.
-   --
-   --  Stk is an IN parameter that is already pointing to a memory area of
-   --  size Size and aligned to Standard'Maximum_Alignment.
-   --
-   --  The secondary stack is fixed, and any attempt to allocate more than the
-   --  initial size will result in a Storage_Error being raised.
-
-   procedure SS_Allocate
-     (Address      : out System.Address;
-      Storage_Size : SSE.Storage_Count);
-   --  Allocate enough space for a 'Storage_Size' bytes object with Maximum
-   --  alignment. The address of the allocated space is returned in 'Address'
-
-   type Mark_Id is private;
-   --  Type used to mark the stack
-
-   function SS_Mark return Mark_Id;
-   --  Return the Mark corresponding to the current state of the stack
-
-   procedure SS_Release (M : Mark_Id);
-   --  Restore the state of the stack corresponding to the mark M. If an
-   --  additional chunk have been allocated, it will never be freed during a
-
-private
-
-   SS_Pool : Integer;
-   --  Unused entity that is just present to ease the sharing of the pool
-   --  mechanism for specific allocation/deallocation in the compiler
-
-   type Mark_Id is new SSE.Integer_Address;
-
-end System.Secondary_Stack;
+end System.Fat_Flt;

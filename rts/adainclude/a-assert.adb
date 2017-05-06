@@ -1,12 +1,12 @@
 ------------------------------------------------------------------------------
 --                                                                          --
---                         GNAT COMPILER COMPONENTS                         --
+--                         GNAT RUN-TIME COMPONENTS                         --
 --                                                                          --
---               S Y S T E M . S E C O N D A R Y _ S T A C K                --
+--                           A D A . A S S E R T                            --
 --                                                                          --
---                                 S p e c                                  --
+--                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2014, Free Software Foundation, Inc.         --
+--         Copyright (C) 2007-2015, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -29,50 +29,25 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Version for use in HI-E mode
+package body Ada.Assertions with
+  SPARK_Mode
+is
+   ------------
+   -- Assert --
+   ------------
 
-with System.Storage_Elements;
+   procedure Assert (Check : Boolean) is
+   begin
+      if Check = False then
+         raise Ada.Assertions.Assertion_Error;
+      end if;
+   end Assert;
 
-package System.Secondary_Stack is
+   procedure Assert (Check : Boolean; Message : String) is
+   begin
+      if Check = False then
+         raise Ada.Assertions.Assertion_Error with Message;
+      end if;
+   end Assert;
 
-   package SSE renames System.Storage_Elements;
-
-   Default_Secondary_Stack_Size : constant := 10 * 1024;
-   --  Default size of a secondary stack
-
-   procedure SS_Init
-     (Stk  : System.Address;
-      Size : Natural := Default_Secondary_Stack_Size);
-   --  Initialize the secondary stack with a main stack of the given Size.
-   --
-   --  Stk is an IN parameter that is already pointing to a memory area of
-   --  size Size and aligned to Standard'Maximum_Alignment.
-   --
-   --  The secondary stack is fixed, and any attempt to allocate more than the
-   --  initial size will result in a Storage_Error being raised.
-
-   procedure SS_Allocate
-     (Address      : out System.Address;
-      Storage_Size : SSE.Storage_Count);
-   --  Allocate enough space for a 'Storage_Size' bytes object with Maximum
-   --  alignment. The address of the allocated space is returned in 'Address'
-
-   type Mark_Id is private;
-   --  Type used to mark the stack
-
-   function SS_Mark return Mark_Id;
-   --  Return the Mark corresponding to the current state of the stack
-
-   procedure SS_Release (M : Mark_Id);
-   --  Restore the state of the stack corresponding to the mark M. If an
-   --  additional chunk have been allocated, it will never be freed during a
-
-private
-
-   SS_Pool : Integer;
-   --  Unused entity that is just present to ease the sharing of the pool
-   --  mechanism for specific allocation/deallocation in the compiler
-
-   type Mark_Id is new SSE.Integer_Address;
-
-end System.Secondary_Stack;
+end Ada.Assertions;

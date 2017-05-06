@@ -2,11 +2,11 @@
 --                                                                          --
 --                         GNAT COMPILER COMPONENTS                         --
 --                                                                          --
---               S Y S T E M . S E C O N D A R Y _ S T A C K                --
+--    S Y S T E M . S E C O N D A R Y _ S T A C K . S I N G L E _ T A S K   --
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2014, Free Software Foundation, Inc.         --
+--          Copyright (C) 2005-2014, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -29,50 +29,40 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Version for use in HI-E mode
+--  This package provides a default and simple implementation of a function
+--  that returns a pointer to a secondary stack. This function is intended
+--  to be used on single-threaded applications. Multi-threaded applications
+--  require thread-local data.
+--
+--  The function defined in this package is used when the two following
+--  conditions are met:
+--    1) No user-defined implementation has been provided. That is, the
+--       symbol __gnat_get_sec_stack is not exported by the user's code.
+--    2) No tasking is used. When tasking is used, the __gnat_get_sec_stack
+--       reference is resolved by libgnarl.a (that contains a thread-safe
+--       implementation of the secondary stack), so that the single-threaded
+--       version is not included in the final executable.
+--
+--  Note that the problem of providing different implementations for tasking
+--  and not tasking applications is usually solved by using the
+--  System.Soft_Links mechanism. This approach has not been followed because
+--  this mechanism if it not available for the High Integrity Ravenscar run
+--  times.
+--
+--  Another possibility would be to always use the tasking (multi-threaded)
+--  version of this function. However, it forces a dependency on libgnarl in
+--  libgnat, which is not desirable.
 
-with System.Storage_Elements;
+--  pragma Restrictions (No_Elaboration_Code);
+--  We want to guarantee the absence of elaboration code because the
+--  binder does not handle references to this package.
 
-package System.Secondary_Stack is
+package System.Secondary_Stack.Single_Task is
 
-   package SSE renames System.Storage_Elements;
+   function Get_Sec_Stack return Address;
+   pragma Export (C, Get_Sec_Stack, "__gnat_get_secondary_stack");
+   --  Return the address of the secondary stack to be used for
+   --  single-threaded applications, as expected by
+   --  System.Secondary_Stack.
 
-   Default_Secondary_Stack_Size : constant := 10 * 1024;
-   --  Default size of a secondary stack
-
-   procedure SS_Init
-     (Stk  : System.Address;
-      Size : Natural := Default_Secondary_Stack_Size);
-   --  Initialize the secondary stack with a main stack of the given Size.
-   --
-   --  Stk is an IN parameter that is already pointing to a memory area of
-   --  size Size and aligned to Standard'Maximum_Alignment.
-   --
-   --  The secondary stack is fixed, and any attempt to allocate more than the
-   --  initial size will result in a Storage_Error being raised.
-
-   procedure SS_Allocate
-     (Address      : out System.Address;
-      Storage_Size : SSE.Storage_Count);
-   --  Allocate enough space for a 'Storage_Size' bytes object with Maximum
-   --  alignment. The address of the allocated space is returned in 'Address'
-
-   type Mark_Id is private;
-   --  Type used to mark the stack
-
-   function SS_Mark return Mark_Id;
-   --  Return the Mark corresponding to the current state of the stack
-
-   procedure SS_Release (M : Mark_Id);
-   --  Restore the state of the stack corresponding to the mark M. If an
-   --  additional chunk have been allocated, it will never be freed during a
-
-private
-
-   SS_Pool : Integer;
-   --  Unused entity that is just present to ease the sharing of the pool
-   --  mechanism for specific allocation/deallocation in the compiler
-
-   type Mark_Id is new SSE.Integer_Address;
-
-end System.Secondary_Stack;
+end System.Secondary_Stack.Single_Task;

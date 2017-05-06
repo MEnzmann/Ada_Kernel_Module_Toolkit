@@ -1,12 +1,12 @@
 ------------------------------------------------------------------------------
 --                                                                          --
---                         GNAT COMPILER COMPONENTS                         --
+--                         GNAT RUN-TIME COMPONENTS                         --
 --                                                                          --
---               S Y S T E M . S E C O N D A R Y _ S T A C K                --
+--    A D A . E X C E P T I O N S . L A S T _ C H A N C E _ H A N D L E R   --
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2014, Free Software Foundation, Inc.         --
+--          Copyright (C) 2012-2013, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -29,50 +29,12 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Version for use in HI-E mode
+--  Last chance handler. Unhandled exceptions are passed to this routine
 
-with System.Storage_Elements;
+with System;
 
-package System.Secondary_Stack is
-
-   package SSE renames System.Storage_Elements;
-
-   Default_Secondary_Stack_Size : constant := 10 * 1024;
-   --  Default size of a secondary stack
-
-   procedure SS_Init
-     (Stk  : System.Address;
-      Size : Natural := Default_Secondary_Stack_Size);
-   --  Initialize the secondary stack with a main stack of the given Size.
-   --
-   --  Stk is an IN parameter that is already pointing to a memory area of
-   --  size Size and aligned to Standard'Maximum_Alignment.
-   --
-   --  The secondary stack is fixed, and any attempt to allocate more than the
-   --  initial size will result in a Storage_Error being raised.
-
-   procedure SS_Allocate
-     (Address      : out System.Address;
-      Storage_Size : SSE.Storage_Count);
-   --  Allocate enough space for a 'Storage_Size' bytes object with Maximum
-   --  alignment. The address of the allocated space is returned in 'Address'
-
-   type Mark_Id is private;
-   --  Type used to mark the stack
-
-   function SS_Mark return Mark_Id;
-   --  Return the Mark corresponding to the current state of the stack
-
-   procedure SS_Release (M : Mark_Id);
-   --  Restore the state of the stack corresponding to the mark M. If an
-   --  additional chunk have been allocated, it will never be freed during a
-
-private
-
-   SS_Pool : Integer;
-   --  Unused entity that is just present to ease the sharing of the pool
-   --  mechanism for specific allocation/deallocation in the compiler
-
-   type Mark_Id is new SSE.Integer_Address;
-
-end System.Secondary_Stack;
+procedure Ada.Exceptions.Last_Chance_Handler
+  (Msg : System.Address; Line : Integer);
+pragma Export
+  (C,  Ada.Exceptions.Last_Chance_Handler, "__gnat_last_chance_handler");
+pragma Preelaborate (Ada.Exceptions.Last_Chance_Handler);
