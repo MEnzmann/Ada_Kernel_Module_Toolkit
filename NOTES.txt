@@ -1,3 +1,62 @@
+Additional changes:
+
+used the ZFP-stm32f4 runtime (ZFP) from the ARM-EABI GNAT compiler (2016 version) as the basis for changes.
+
+added 
+"-nostdlib" and "-nostdinc" switches to the Default_Switches section in
+package Compiler of RTS/gnat.gpr to make sure, that only the source files
+in RTS/adainclude and the library files in RTS/adalib would be used.
+
+replaced the following files with files from the ZFP
+	s-secsta.ad[bs]   --> system.secondary_stack
+	s-sssita.ad[bs]   --> system.secondary_stack.single_task
+	removed pragma Restrictions (No_Elaboration_Code) from s-sssita.ad[bs]
+
+replaced
+	with Unchecked_Conversion;
+with
+	with Ada.Unchecked_Conversion;
+in line 34 of s-secsta.adb
+
+and in replaced in line 51 of s-secsta.adb
+	function From_Addr is new Unchecked_Conversion (Address, Stack_Ptr);
+with
+	function From_Addr is new
+		 Ada.Unchecked_Conversion (Address, Stack_Ptr);
+
+included the following files from the ZFP  
+	 i-c.ads           --> Interfaces.C
+	 i-cexten.ads      --> Interfaces.C.Extensions
+	 a-except.ad[bs]   --> Ada.Exeptions;
+	 a-elcha.ads       --> Ada.Exceptions.Last_Chance_Handler
+	 s-fatgen.ad[bs]   --> System.Fat_Gen (Floating point attributes)
+
+copied last_chance_handler.adb to a-elcha.adb
+changed name of the procedure from Last_Chance_Handler to
+Ada.Exceptions.Last_Chance_Handler and changed name of the procedures first
+parameter from Source Location to Msg;
+
+changed pragma No_Return (Ada.Exceptions.Last_Chance_Handler) to
+pragma Preelaborate (Ada.Exceptions.Last_Chance_Handler) in a-elcha.ads.
+
+removed pragma (No_Wide_Characters) and pragma (No_Secondary_Stack) from
+gnat.adc in order to accomodate i-c.ads and a-tags.ad[bs]
+
+
+included the following files from ZFP:
+	 s-assert.ad[bs]   --> System.Assertions
+	 a-assert.ad[bs]   --> Ada.Assertions
+	 a-tags.ad[bs]     --> Ada.Tags
+	 i-bit_types.ads   --> Interfaces.Bit_Types
+	 s-fatflt.ads      --> System.Fat_Flt  (Attributes for Float)
+	 s-imgboo.ad[]bs   --> System.Img_Bool  (Image for Boolean variables)
+	 s-memory.ad[bs]   --> System.Memory
+
+Modified both s-memory.ad[bs] files so, that low level allocation / deallocation works with kmalloc / kfree defined in /lib/modules/$(uname -r)/source/include/linux/slab.h) on a very simple level however!
+	 
+
+==> compiles to libgnat.a
+
 -- https://groups.google.com/forum/#!topic/comp.lang.ada/snlsntRL0_U
 -- https://gcc.gnu.org/onlinedocs/gnat_ugn/Building-a-Stand-alone-Library.html
 -- http://stackoverflow.com/questions/26805533/how-to-create-an-ada-lib-a-and-link-to-c-updated
